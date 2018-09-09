@@ -1,0 +1,11 @@
+const seatStyle = {
+  NONE:"NONE", //no space
+  NORMAL:"NORMAL",
+  BARSEAT:"BARSEAT",
+  HOUSE:"HOUSE", //empty - no space
+  HANDICAP:"HANDICAP", //ADA
+  HANDICAP_SPACE:"HANDICAP_SPACE", //ADA
+  COMPANION:"COMPANION", //ADA
+  RECLINER:"RECLINER",
+  UNKNOWN:"UNKNOWN" //empty - no space
+};

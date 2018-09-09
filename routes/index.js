@@ -3,6 +3,7 @@ var bodyParser = require('body-parser');
 var app = express();
 var port = process.env.PORT || 3000;
 var router = express.Router();
+var validate = require('../seat-validation/index');
 
 app.use(bodyParser.json()); // support json encoded bodies
 app.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
@@ -26,9 +27,8 @@ app.param('name', function(req, res, next, name) {
 });
 
 app.post('/validate', function(req, res){
-  console.log(JSON.parse(req.body));
-  res.send(JSON.parse(req.body));
-  // res.send("recieved your request!");
+  validate.validate();
+  res.end();
 });
 
 
@@ -40,56 +40,25 @@ function createError(status, message) {
 
 module.exports = app;
 app.use('/', router);
-app.listen(port);
+app.listen(port, function() {
+  console.log('Let\'s get ready to rumble!!!!');
+});
 ///////////////////////////notes and stuffs
-var seatingDataPath = 'https://drafthouse.com/s/mother/v1/app/seats/{cinemaId}/{sessionId}';
-var areaIndex;
-var rowIndex;
-var columnIndex;
-var seatStyle;
-var seatStatus;
-var tableStyle;
-var warnings;
+let seatingDataPath = 'https://drafthouse.com/s/mother/v1/app/seats/{cinemaId}/{sessionId}';
+let areaIndex;
+let rowIndex;
+let columnIndex;
+let seatStyle;
+let seatStatus;
+let tableStyle;
+let warnings;
 
-var seats; //can have a seat style of NONE, meaning there isn’t a seat there.
-const SeatStyleEnum = {
-  NONE:"NONE", //no space
-  NORMAL:"NORMAL",
-  BARSEAT:"BARSEAT",
-  HOUSE:"HOUSE", //empty - no space
-  HANDICAP:"HANDICAP", //ADA
-  HANDICAP_SPACE:"HANDICAP_SPACE", //ADA
-  COMPANION:"COMPANION", //ADA
-  RECLINER:"RECLINER",
-  UNKNOWN:"UNKNOWN" //empty - no space
+
+/* - RESPONSE OBJECT
+{
+  "isValid": true
 }
-
-const SeatStatusEnum = {
-  NONE:"NONE", //no space - will also have SeatStyleEnum.NONE
-  EMPTY:"EMPTY", //Available to be sold
-  SOLD:"SOLD", //not available
-  RESERVED:"RESERVED", //not available
-  BROKEN:"BROKEN", //not available
-  PLACEHOLDER:"PLACEHOLDER", //not available
-  UNKNOWN:"UNKNOWN" //not available
-}
-
-
-const TableStyleEnum = {
-  NONE:"NONE", //??????????
-  SINGLE:"SINGLE", //normal rules
-  PAIR_LEFT:"PAIR_LEFT", //need pairing logic - row with paired tables and odd number of rows will have a SINGLE table at one end
-  PAIR_RIGHT:"PAIR_RIGHT", //need pairing logic
-  SIDE_TABLE_LEFT:"SIDE_TABLE_LEFT", //normal rules
-  SIDE_TABLE_RIGHT:"SIDE_TABLE_RIGHT", //normal rules
-  LONG_LEFT:"LONG_LEFT", //normal rules
-  LONG_CENTER:"LONG_CENTER", //normal rules
-  LONG_RIGHT:"LONG_RIGHT", //normal rules
-  LONG_GAP:"LONG_GAP", //normal rules
-  LONG_GAP_LEFT:"LONG_GAP_LEFT", //normal rules
-  LONG_GAP_RIGHT:"LONG_GAP_RIGHT", //normal rules
-  UNKNOWN:"UNKNOWN" //normal rules
-}
+(/
 
 /**
  * GENERAL NOTES
@@ -111,10 +80,19 @@ const TableStyleEnum = {
  * ---- below 70% occupancy and within 30 minutes of show time.
  * -------- This will require coordination with an additional endpoint to get the show time for the session.
  * - One special case that I’d like you to tackle is the balcony seats at the Ritz (see email)
+ *
  */
 
 /*
 RESOURCES:
 - https://scotch.io/tutorials/learn-to-use-the-new-router-in-expressjs-4
 - https://scotch.io/tutorials/use-expressjs-to-get-url-and-post-parameters
+- https://expressjs.com/en/guide/migrating-5.html
+- https://github.com/axios/axios
+- https://medium.com/@zurfyx/building-a-scalable-node-js-express-app-1be1a7134cfd
+- https://github.com/gothinkster/node-express-realworld-example-app/
+- https://github.com/elsewhencode/project-guidelines#6-structure-and-naming
+- https://github.com/airbnb/javascript - js style guide
+- https://github.com/focusaurus/express_code_structure - express structure and stylings
+- https://github.com/expressjs/express/tree/master/examples - expressjs examples (from express.js github repo)
  */
