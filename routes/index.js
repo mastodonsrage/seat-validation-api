@@ -1,9 +1,11 @@
-var express = require('express');
-var bodyParser = require('body-parser');
-var app = express();
-var port = process.env.PORT || 3000;
-var router = express.Router();
-var validate = require('../seat-validation/index');
+let express = require('express');
+let bodyParser = require('body-parser');
+let app = express();
+let port = process.env.PORT || 3000;
+let router = express.Router();
+let SeatValidation = require('../seat-validation/index');
+let axios = require('axios');
+let _ = require('lodash');
 
 app.use(bodyParser.json()); // support json encoded bodies
 app.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
@@ -18,7 +20,7 @@ app.post('/api/users/:name', function(req, res) {
 app.param('name', function(req, res, next, name) {
 
   // validate or whatever
-  var modified = name + '-dude';
+  let modified = name + '-dude';
 
   // save name to the request
   req.params.name = modified;
@@ -26,21 +28,25 @@ app.param('name', function(req, res, next, name) {
   next();
 });
 
-app.post('/validate', function(req, res){
-  validate.validate();
-  res.end();
+app.post('/butt/:cinemaId/:sessionId', function(req, res) {
+  console.log('got request');
+  let seatValidation = new SeatValidation();
+  seatValidation.validate(req.params.cinemaId, req.params.sessionId, req.body)
+    .then(r => {
+      res.send(r);
+    });
 });
 
 
 function createError(status, message) {
-  var err = new Error(message);
+  let err = new Error(message);
   err.status = status;
   return err;
 }
 
 module.exports = app;
 app.use('/', router);
-app.listen(port, function() {
+app.listen(8080, function() {
   console.log('Let\'s get ready to rumble!!!!');
 });
 ///////////////////////////notes and stuffs
@@ -70,6 +76,12 @@ let warnings;
  * - Use promises (ES6 or Bluebird - http://bluebirdjs.com) rather than direct callbacks in Node.
  * - Use lodash (https://lodash.com/) to make your collection manipulation (and other stuff) clean and functional.
  *
+ * TODOS
+ * - How do we want to structure this beast? Naming conventions?
+ * - Do we want to delete the `public` dir?
+ * - documentation
+ * - Set base url to /api? or /v1?
+ *
  * REQUIREMENTS
  * - Should handle the:
  * --  long table/single table seating logic (no single-seat gaps) that we mostly talked through
@@ -95,4 +107,5 @@ RESOURCES:
 - https://github.com/airbnb/javascript - js style guide
 - https://github.com/focusaurus/express_code_structure - express structure and stylings
 - https://github.com/expressjs/express/tree/master/examples - expressjs examples (from express.js github repo)
+- https://developer.mozilla.org/en-US/docs/Learn/Server-side/Express_Nodejs/routes
  */

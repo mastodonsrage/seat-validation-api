@@ -1,17 +1,19 @@
-var _lodash = require('lodash/core');
-var express = require('express');
-var app = express();
-var router = express.Router();
-var bodyParser = require('body-parser');
+let _ = require('lodash/core');
+let SeatingService = require('./seating-service');
 
-router.use(bodyParser.urlencoded({ extended: true }));
-router.use(bodyParser.json());
+class SeatValidation {
+  validate(cinemaId, sessionId, seats) {
+    console.log('SeatValidation.validate');
+    let seatingService = new SeatingService();
 
-var methods = {
-  validate: function() {
-    console.log('yessss');
-    return;
+    let selectedSeats = seatingService.mapSelectedSeats(seats);
+    return seatingService.getSeatingDataForSelected(cinemaId, sessionId, selectedSeats)
+      .then(seatingArea => performValidation(seatingArea, selectedSeats));
   }
 };
 
-module.exports = methods;
+function performValidation(seatingArea, selected) {
+  return true;
+}
+
+module.exports = SeatValidation;

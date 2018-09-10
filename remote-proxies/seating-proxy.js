@@ -1,19 +1,26 @@
-const axios = require('axios');
+const Promise = require('axios');
 
 class SeatingProxy {
 
-  constructor() {}
+  getSeatingData(cinemaId, sessionId) {
+    return new Promise.get(`https://drafthouse.com/s/mother/v1/app/seats/${cinemaId}/${sessionId}`)
+      .then((response) => {
+        return response.data.data.seatingData.areas;
+      }).catch(error => {
+        console.log(error);
+        return error;
+    })
+  }
 
-  getSeatingData() {
-    axios.all([
-      axios.get('https://drafthouse.com/s/mother/v1/app/seats/0006/125211'),
-      axios.get(' https://drafthouse.com/s/mother/v1/app/showtime/0006/125211?userSessionId=5ec2cb6b2f4548d8917bc248e98243f8')
-    ]).then(axios.spread((response1, response2) => {
-      console.log(response1.body);
-      console.log(response2.body);
-    })).catch(error => {
-      console.log(error);
+  getSessionData(cinemaId, sessionId) {
+    return new Promise.get(`https://drafthouse.com/s/mother/v1/app/showtime/${cinemaId}/${sessionId}?userSessionId=5ec2cb6b2f4548d8917bc248e98243f8`)
+      .then((response) => {
+        console.log(response.body);
+        return response.data;
+      }).catch(error => {
+        console.log(error);
     });
   }
 }
+
 module.exports = SeatingProxy;
