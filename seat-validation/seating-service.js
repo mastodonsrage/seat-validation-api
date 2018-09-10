@@ -55,7 +55,7 @@ function extractRows(area, selectedSeats) {
     .value();
 }
 
-function retrieveRelevantRows(areas) {
+function retrieveRelevantRows(areas, selectedSeats) {
   return combineAreas(areas, selectedSeats);
 }
 
