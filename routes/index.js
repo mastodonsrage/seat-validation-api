@@ -14,8 +14,7 @@ app.post('/validate/:cinemaId/:sessionId', function(req, res) {
     .then(r => {
       let responseBody = {'isValid': r};
       res.send(responseBody);
-    })
-    .catch((res) => res.status(500).send('Uh oh. Something bad happened...'));
+    });
 });
 
 app.post('/', function(req, res) {
@@ -24,6 +23,10 @@ app.post('/', function(req, res) {
 
 module.exports = app;
 
+app.use(function (err, req, res, next) {
+  console.error(err.stack)
+  res.status(500).send('Something broke!')
+});
 app.use('/', router);
 app.listen(8999, function() {
   console.log('Let\'s get ready to rumble!!!!');

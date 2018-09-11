@@ -57,11 +57,13 @@ class SeatValidation {
     }
 
     let firstPendingValidation = _.findIndex(seats, seat => seat.isPending);
-    for (let i = firstPendingValidation; i < seats.length; i++) {
+    let lastPendingValidation = Math.min(_.findLastIndex(seats, seat => seat.isPending), seats.length-1);
+    for (let i = firstPendingValidation; i < lastPendingValidation; i++) {
       let sectionStart = Math.abs(i-2);
       let sectionEnd = Math.min(i+3, seats.length-1);
       let rowSection = _.slice(seats, sectionStart, sectionEnd);
-      if (!this.validateUsingMethod(rowSection)(rowSection)) {
+      let isValid = this.validateUsingMethod(rowSection);
+      if (!isValid(rowSection)) {
         return false;
       }
     }
@@ -75,9 +77,10 @@ class SeatValidation {
       return this.isValidRowStart;
     } else if (seatingService.isPair(seat)) {
       return this.isValidSeatPair;
+    } else if (seat.seatStyle == 'NONE') {
+      return () => false;
     }
-    return this.isValidMidRowSeat;
-    //todo: if seatStyle = NONE, throw error - can't buy ticket for nonexistent seat
+    return this.isValidNormalSeatRow;
   }
 
   isValidAdaSeat() {
@@ -98,7 +101,10 @@ class SeatValidation {
   _ _ [?] O X   // NOT OK
   X O [?] _ _   // NOT OK
   */
-  isValidMidRowSeat(seats) {
+  isValidNormalSeatRow(seats) {
+    if (seats.length < 5) {
+      return this.isValidShortRow(seats);
+    }
     //todo: make this prettier
     return !(!seatingService.isEmptySeat(seats[0]) &&  seatingService.isEmptySeat(seats[1]) // X O [?] _ _    <= invalid
       || seatingService.isEmptySeat(seats[3]) && !seatingService.isEmptySeat(seats[4])); // _ _ [?] O X    <= invalid
