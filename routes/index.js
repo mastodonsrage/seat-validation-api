@@ -3,7 +3,7 @@ let bodyParser = require('body-parser');
 let app = express();
 let port = process.env.PORT || 3000;
 let router = express.Router();
-let SeatValidation = require('../seat-validation/index');
+let SeatValidation = require('../seat-validation/validate');
 let axios = require('axios');
 let _ = require('lodash');
 
