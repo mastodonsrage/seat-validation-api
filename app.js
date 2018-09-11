@@ -1,7 +1,6 @@
 let createError = require('http-errors');
 let express = require('express');
 let path = require('path');
-let cookieParser = require('cookie-parser');
 let logger = require('morgan');
 
 let indexRouter = require('./routes/index');
@@ -17,12 +16,11 @@ app.set('view engine', 'pug');
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
+app.use('/validate', validationRouter);
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
-app.use('/validator', validationRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

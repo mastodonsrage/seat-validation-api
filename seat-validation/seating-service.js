@@ -15,7 +15,10 @@ class SeatingService {
 
     return seatingProxy.getSeatingData(cinemaId, sessionId)
       .then(areas => filterForRelevantRows(areas, seats))
-      .catch(error => console.log(error));
+      .catch(error => {
+        //todo: do more things here
+        console.log(error)
+      });
   }
 
   /**

@@ -5,6 +5,9 @@ const seatingService = new SeatingService();
 /**
  * This class validates if a section of selected seats for any number of rows and areas is a valid selection.
  *
+ * Assumptions:
+ * - if a user selected a non-ADA seat within range of ADA seating, single-seat rules apply.
+ *
  * A note on ASCII seat representations: some tests and functions are documented using an ASCII representation of the
  * seats under validation. We use the ASCII display codes used by the Mother ASCII Seating Art endpoint
  * (see https://drafthouse.com/s/mother/v1/app/seats/{cinemaId}/{sessionId}/render).
@@ -36,7 +39,6 @@ class SeatValidation {
       .then(seatingAreaDetails => this.performValidation(seatingAreaDetails));
   }
 
-  //todo: note that I made the assumption that if a user selected a non-ada seat that's near ada seating, single-seat rules apply
   //todo: validate case when selected seat doesn't exist in area
 
   performValidation(allAreaDetails) {
@@ -48,7 +50,9 @@ class SeatValidation {
   }
 
   validateRow(seats) {
-    if (seats.length < 5) {
+    if (seats.length < 5
+      && seats[0].seatStyle == 'NONE'
+      && seats[seats.length-2].seatStyle == 'NONE') {
       return this.isValidShortRow(seats);
     }
 
@@ -57,15 +61,15 @@ class SeatValidation {
       let sectionStart = Math.abs(i-2);
       let sectionEnd = Math.min(i+3, seats.length-1);
       let rowSection = _.slice(seats, sectionStart, sectionEnd);
-      if (!this.validateUsing(rowSection)(rowSection)) {
+      if (!this.validateUsingMethod(rowSection)(rowSection)) {
         return false;
       }
     }
     return true;
   }
 
-  validateUsing(seat) {
-    if (this.isAdaSeat(seat)) {
+  validateUsingMethod(seat) {
+    if (seatingService.isAdaSeat(seat)) {
       return this.isValidAdaSeat;
     } else if (seatingService.isSectionStart(seat)) {
       return this.isValidRowStart;
