@@ -1,5 +1,5 @@
 const _ = require('lodash');
-const SeatingService = require('./seating-service');
+const SeatingService = require('../seating-service/seating-service');
 const seatingService = new SeatingService();
 
 /**
@@ -37,9 +37,10 @@ class SeatValidation {
     let selectedSeats = seatingService.mapForSelectedSeats(seats);
     return seatingService.getSeatingDataForSelected(cinemaId, sessionId, selectedSeats)
       .then(seatingAreaDetails => this.performValidation(seatingAreaDetails));
-  }
+  };
 
-  //todo: validate case when selected seat doesn't exist in area
+  //todo: add table validation - all row configurations should include check for paired tables
+  //todo: making the assumption that selecting [O O PR PL PR O O] is valid
 
   performValidation(allAreaDetails) {
     return _.every(allAreaDetails, areaDetails => {
@@ -50,44 +51,42 @@ class SeatValidation {
   }
 
   validateRow(seats) {
-    if (seats.length < 5
-      && seats[0].seatStyle == 'NONE'
-      && seats[seats.length-2].seatStyle == 'NONE') {
-      return this.isValidShortRow(seats);
-    }
-
-    let firstPendingValidation = _.findIndex(seats, seat => seat.isPending);
-    let lastPendingValidation = Math.min(_.findLastIndex(seats, seat => seat.isPending), seats.length-1);
-    for (let i = firstPendingValidation; i < lastPendingValidation; i++) {
-      let sectionStart = Math.abs(i-2);
-      let sectionEnd = Math.min(i+3, seats.length-1);
+    let nextIndex = _.findIndex(seats, seat => seat.isPending);
+    while (nextIndex >= 0) {
+      let sectionStart = Math.max(0, nextIndex-2);
+      let sectionEnd = Math.min(nextIndex+3, seats.length);
       let rowSection = _.slice(seats, sectionStart, sectionEnd);
-      let isValid = this.validateUsingMethod(rowSection);
-      if (!isValid(rowSection)) {
+      if (!this.validateUsingMethod(rowSection, seats[nextIndex])) {
         return false;
       }
+      nextIndex = _.findIndex(seats, seat => seat.isPending, nextIndex+1);
     }
     return true;
   }
 
-  validateUsingMethod(seat) {
-    if (seatingService.isAdaSeat(seat)) {
-      return this.isValidAdaSeat;
-    } else if (seatingService.isSectionStart(seat)) {
-      return this.isValidRowStart;
-    } else if (seatingService.isPair(seat)) {
-      return this.isValidSeatPair;
-    } else if (seat.seatStyle == 'NONE') {
+  validateUsingMethod(seats, seat) {
+    if (!this.isAvailable(seat)) {
       return () => false;
     }
-    return this.isValidNormalSeatRow;
+
+    if (seatingService.isAdaSeat(seat)) {
+      return this.isValidAdaSeat(seats);
+    } else if (seatingService.isPair(seat)) {
+      return this.isValidSeatPair(seats);
+    }
+    return this.isValidNormalSeatRow(seats);
+  }
+
+  isAvailable(seat) {
+    return !seatingService.isSold(seat)
+      && seatingService.isEmptySeat(seat);
   }
 
   isValidAdaSeat() {
     return true;
   }
 
-  isValidSeatPair() {
+  isValidSeatPair(seats) {
     //if even number of seats are selected, verify that both LEFT and RIGHT are selected
     //if an odd number of seats are selected, do single-seat search
     //todo: implement me
@@ -106,8 +105,8 @@ class SeatValidation {
       return this.isValidShortRow(seats);
     }
     //todo: make this prettier
-    return !(!seatingService.isEmptySeat(seats[0]) &&  seatingService.isEmptySeat(seats[1]) // X O [?] _ _    <= invalid
-      || seatingService.isEmptySeat(seats[3]) && !seatingService.isEmptySeat(seats[4])); // _ _ [?] O X    <= invalid
+    return !((!this.isOpen(seats[0]) &&  this.isOpen(seats[1])) // X O [?] _ _    <= invalid
+      || (this.isOpen(seats[3]) && !this.isOpen(seats[4]))); // _ _ [?] O X    <= invalid
 
   }
 
@@ -125,9 +124,10 @@ class SeatValidation {
   isValidShortRow(seats) {
     if (seats.length <= 2) return true;
     if (seats.length == 3) {
-      return seats[1].isPending
+      return !(seats[1].isPending
         && seatingService.isEmptySeat(seats[0])
-        && seatingService.isEmptySeat(seats[1]);
+        && seatingService.isEmptySeat(seats[2])
+      );
     }
     //Else, verify 4 seat section
     return this.isValidFourSeatRow(seats);
@@ -135,23 +135,28 @@ class SeatValidation {
 
   /**
    * Checks if an array of four seats are valid.
-   * O [?] X O // <= INVALID
-   * O [?] O X // <= INVALID
-   * O [?] O O // <= VALID - row still allows for another pair of people
-   * O [?] X X // <= VALID - we want to allow groups of three people to sit here
+   *
+   * There are so many permutations of things that could lead to a myriad of seating situations. For rows that are
+   * this small (and presumably uncommon), let's only validate if the user has selected alternating seats.
+   *
+   * [?]  O  [?]  O   // <= INVALID
+   *  O  [?]  O  [?] // <= INVALID
+   *
    * @param seats
    */
   isValidFourSeatRow(seats) {
-    if (!seats[1].isPending) {
-      //Logic is reversed if seat undergoing validation is in index 2
-      return this.isValidFourSeatRow(_.reverse(seats));
-    }
-    return seatingService.isEmptySeat(seats[0])
+    let seat0Pending = seats[0].isPending;
+    let seat1Pending = seats[1].isPending;
+    let seat2Pending = seats[2].isPending;
+    let seat3Pending = seats[3].isPending;
+
+    return !(seat0Pending | seat1Pending
+      && seat1Pending | seat2Pending
+      && seat2Pending | seat3Pending);
   }
 
-  isValidRowStart(seats) {
-    //todo: IMPLEMENT ME - hopefully we can bake this into some of the existing logic
-    return true;
+  isOpen(seat) {
+    return seat.isPending == false && !seatingService.isSold(seat);
   }
 }
 

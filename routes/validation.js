@@ -1,7 +1,7 @@
 let express = require('express');
 let app = express();
 let bodyParser = require('body-parser');
-let SeatValidation = require('../seat-validation/validate');
+let SeatValidation = require('../services/seat-validation/validate');
 let _ = require('lodash');
 
 app.use(bodyParser.json({type: 'application/json'})); // support json encoded bodies

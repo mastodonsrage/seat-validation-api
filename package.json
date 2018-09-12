@@ -21,7 +21,10 @@
   },
   "description": "Validates seats",
   "main": "app.js",
-  "devDependencies": {},
+  "devDependencies": {
+    "chai": "*",
+    "mocha": "*"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/mastodonsrage/seat-validation-api.git"

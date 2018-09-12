@@ -2,7 +2,7 @@ let express = require('express');
 let bodyParser = require('body-parser');
 let app = express();
 let router = express.Router();
-let SeatValidation = require('../seat-validation/validate');
+let SeatValidation = require('../services/seat-validation/validate');
 
 app.use(bodyParser.json()); // support json encoded bodies
 app.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
