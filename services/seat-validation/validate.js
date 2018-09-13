@@ -12,6 +12,7 @@ const seatingService = new SeatingService();
  * seats under validation. We use the ASCII display codes used by the Mother ASCII Seating Art endpoint
  * (see https://drafthouse.com/s/mother/v1/app/seats/{cinemaId}/{sessionId}/render).
  * seatType representations are:
+ * - NONE = "_"
  * - NORMAL = "O"
  * - BARSEAT = "h"
  * - HOUSE = "H"
@@ -24,6 +25,7 @@ const seatingService = new SeatingService();
  * seatStatus representations are:
  * - Sold or otherwise unavailable = "X"
  * - Empty = "O"
+ * - Wildcard seat = "*"
  * - Seat being validated = "[?]"
  *
  * Table codes will only be included in representations when necessary. Relevant table codes are:
@@ -36,17 +38,16 @@ class SeatValidation {
   validate(cinemaId, sessionId, seats) {
     let selectedSeats = seatingService.mapForSelectedSeats(seats);
     return seatingService.getSeatingDataForSelected(cinemaId, sessionId, selectedSeats)
-      .then(seatingAreaDetails => this.performValidation(seatingAreaDetails));
+      .then(seatingAreaDetails => this.performValidation(seatingAreaDetails))
+      .catch(error => { throw error; }); //todo: add logging
   };
 
-  //todo: add table validation - all row configurations should include check for paired tables
-  //todo: making the assumption that selecting [O O PR PL PR O O] is valid
+  //todo: validate that the user only asked for seats from one area
+  //todo: validate Ritz loveseats
 
   performValidation(allAreaDetails) {
-    return _.every(allAreaDetails, areaDetails => {
-      return _.every(areaDetails, rowDetails => {
-        return this.validateRow(rowDetails);
-      });
+    return _.every(allAreaDetails, rowDetails => {
+      return this.validateRow(rowDetails);
     });
   }
 
@@ -56,7 +57,7 @@ class SeatValidation {
       let sectionStart = Math.max(0, nextIndex-2);
       let sectionEnd = Math.min(nextIndex+3, seats.length);
       let rowSection = _.slice(seats, sectionStart, sectionEnd);
-      if (!this.validateUsingMethod(rowSection, seats[nextIndex])) {
+      if (!this.validateUsingMethod(rowSection, nextIndex)) {
         return false;
       }
       nextIndex = _.findIndex(seats, seat => seat.isPending, nextIndex+1);
@@ -64,20 +65,20 @@ class SeatValidation {
     return true;
   }
 
-  validateUsingMethod(seats, seat) {
-    if (!this.isAvailable(seat)) {
+  validateUsingMethod(seats, currSeatIndex) {
+    if (!this.isAvailableForPurchase(seats[currSeatIndex])) {
       return () => false;
     }
 
-    if (seatingService.isAdaSeat(seat)) {
+    if (seatingService.isAdaSeat(seats[currSeatIndex])) {
       return this.isValidAdaSeat(seats);
-    } else if (seatingService.isPair(seat)) {
-      return this.isValidSeatPair(seats);
+    } else if (seatingService.arePairs(seats)) {
+      return this.isValidSeatPair(seats, currSeatIndex);
     }
     return this.isValidNormalSeatRow(seats);
   }
 
-  isAvailable(seat) {
+  isAvailableForPurchase(seat) {
     return !seatingService.isSold(seat)
       && seatingService.isEmptySeat(seat);
   }
@@ -86,19 +87,48 @@ class SeatValidation {
     return true;
   }
 
-  isValidSeatPair(seats) {
-    //if even number of seats are selected, verify that both LEFT and RIGHT are selected
-    //if an odd number of seats are selected, do single-seat search
-    //todo: implement me
+  /**
+   *
+   *  PL   PR  [PL] [PR] PL  PR      //<= valid
+   *  PR   PL  [PR] [PL] PR  PL      //<= invalid - selected two seats that don't share a table
+   *  PR   PL  [PR]  PL [PR] PL PR  //<= invalid - single-seat gap
+   * [S]  [PL] [PR]  PL  PR         //<= valid
+   *  S   [PL] [PR]  PL  PR         //<= valid
+   *  PL   PR  [PL] [PR] S          //<= valid
+   *  S    PL  [PR] [PL] [PR] PL PR //<= valid
+   *
+   * @param seats
+   * @returns {boolean}
+   */
+  isValidSeatPair(seats, currSeatIndex) {
+    if (seats[currSeatIndex].tableStyle === 'PAIR_RIGHT'
+      && !seats[currSeatIndex-1].isPending //Didn't select corresponding PAIR_LEFT
+      && !seats[currSeatIndex+1].isPending //Isn't sequence of consecutive seats
+      && (seats.length >= currSeatIndex+2
+        && seats[currSeatIndex+2].isPending)) { // [PR] PL [PR] <= invalid single-seat gap
+      return false;
+    }
+
+    if (seats[currSeatIndex].tableStyle === 'PAIR_LEFT'
+      && seats[currSeatIndex+1].isPending) {
+      return true; // * * [PL] [PR] * * <= is valid
+    }
+
+    if (seats[currSeatIndex].tableStyle === 'PAIR_LEFT'
+      && seats[currSeatIndex-1].isPending
+      && (currSeatIndex-2 >= 0 && !seats[currSeatIndex-2].isPending)) {
+      return false; // PL [PR] [PL] PR PL PR <= is invalid - must select left/right table pairs
+    }
+
     return true;
   }
 
   /*
   O O [?] O O   // OK
-  _ X [?] O O   // OK
-  O O [?] X _   // OK
-  _ _ [?] O X   // NOT OK
-  X O [?] _ _   // NOT OK
+  * X [?] O O   // OK
+  O O [?] X *   // OK
+  * * [?] O X   // NOT OK
+  X O [?] * *   // NOT OK
   */
   isValidNormalSeatRow(seats) {
     if (seats.length < 5) {
@@ -156,7 +186,7 @@ class SeatValidation {
   }
 
   isOpen(seat) {
-    return seat.isPending == false && !seatingService.isSold(seat);
+    return !seat.isPending && !seatingService.isSold(seat);
   }
 }
 

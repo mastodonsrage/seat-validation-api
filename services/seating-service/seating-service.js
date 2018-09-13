@@ -24,18 +24,15 @@ class SeatingService {
   /**
    * Maps a list of seating objects to a nested object. For example:
    * {
-   *   'areaIndex2': {
-   *      'rowIndex3': ['columnIndex1', 'columnIndex2'],
-   *      'rowIndex4': ['columnIndex7', 'columnIndex8']
-   *    }
+   *   'rowIndex3': ['columnIndex1', 'columnIndex2'],
+   *   'rowIndex4': ['columnIndex7', 'columnIndex8']
    * }
    * @param selected
    * @returns {*}
    */
   mapForSelectedSeats(selected) {
     return _.chain(selected)
-      .groupBy(selectedArea => selectedArea.areaIndex)
-      .mapValues(selectedArea => {
+      .flatMap(selectedArea => {
         return _.chain(selectedArea)
           .groupBy(selectedRow => selectedRow.rowIndex)
           .mapValues(selectedColumn => {
@@ -55,7 +52,6 @@ class SeatingService {
   }
 
   mapSeats(unsortedRowDetails, selectedSeats) {
-    //TODO: ASSUMPTION: the seat data endpoint will always return one seat object for each columnIndex in the row's range of columns
     let sortedRowDetails = _.sortBy(unsortedRowDetails.seats, seat => seat.columnIndex);
     if (!this.hasValidSeatSelection(selectedSeats, sortedRowDetails)) {
       //todo: handle this better. Ok workaround until I have time to implement
@@ -71,12 +67,20 @@ class SeatingService {
 
 
   /**
-   * Returns true if seatStyle is either 'LEFT_PAIR' or 'RIGHT_PAIR'. Else, returns false.
+   * Returns true if row contains tableStyle that is either 'PAIR_LEFT' or 'PAIR_RIGHT'. Else, returns false.
+   *
    * @param seat
    * @returns {boolean}
    */
-  isPair(seat) {
-    return seat != null && (seat.seatStyle === 'LEFT_PAIR' || seat.seatStyle === 'RIGHT_PAIR');
+  arePairs(seats) {
+    let firstTableIndex = _.findIndex(seats, seat => seat.tableStyle !== 'NONE');
+
+    //TODO: ASSUMPTION: that no single row will have multiple tableStyles (excluding NONE)
+    //If it's a paired table, at least one of the first three tables must be PAIR_LEFT (one table could also be SINGLE)
+    let tablePairPair = ['PAIR_LEFT', 'PAIR_RIGHT'];
+    return firstTableIndex >= 0
+      && (_.includes(tablePairPair, seats[firstTableIndex]['tableStyle'])
+        || (seats[firstTableIndex].tableStyle === 'SINGLE' && seats[firstTableIndex+1].tableStyle === 'PAIR_LEFT'));
   }
 
   /**
@@ -110,6 +114,14 @@ class SeatingService {
     return seat != null && seat.seatStatus === 'SOLD';
   }
 
+  isSoldAsPair(seat) {
+    if (seat.warnings == null) {
+      return false;
+    }
+
+    return _.some(seat.warnings, warning => warning['category'] === 107 && warning['code'] === 105);
+  }
+
   /**
    * Gets a map of relevant columns. Columns are grouped by areaId then rowId. Will also pull back column data for
    * two columns on each side of the selectedSeats, if present.
@@ -118,16 +130,6 @@ class SeatingService {
    * @returns {*}
    */
   filterForRelevantRows(areas, selectedSeats) {
-    return this.combineAreas(areas, selectedSeats);
-  }
-
-  /**
-   * Gets relevant seating data only for seats that were selected and each of the seats' surrounding chairs
-   * @param areas
-   * @param selectedAreas
-   * @returns {*}
-   */
-  combineAreas(areas, selectedSeats) {
     return _.chain(areas)
       .filter(area => area.areaIndex in selectedSeats)
       .keyBy(area => area.areaIndex)
