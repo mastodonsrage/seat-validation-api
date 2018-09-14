@@ -3,22 +3,40 @@ let chai = require('chai');
 let assert = chai.assert;
 let Validator = require('../../services/seat-validation/validate');
 let validator = new Validator();
-let Mocker = require('./test-utils/seat-validation-mocks');
+let Mocker = require('../test-utils/seating-mocks');
 let mocker = new Mocker();
 
 /**
  * NOTE: column selections that need validation will be graphically displayed as ?
  */
 describe('column Validation', () => {
+
+  /**
+   * Test validate
+   */
+  describe('validate', () => {
+    it('Should do validation if able to map seats, get remote seating data, and all selections are valid', () => {
+      //todo: implement me
+    });
+
+    it('Should return error if user selected seats that don\'t exist', () => {
+      //todo: implement me
+    });
+
+    it('Should respond with error if call to get seating data fails', () => {
+      //todo: implement me
+    });
+  });
+
   /**
    * Test column validation
    */
-  describe('validate', () => {
+  describe('performValidation', () => {
 
     it('should return true when validating multiple rows if all selections are valid', () => {
 
       //todo: implement me
-      // assert.isOk(false);
+      // assert.isOk();
 
     });
 
@@ -26,6 +44,11 @@ describe('column Validation', () => {
 
       //todo: implement me
       // assert.isNotOk();
+    });
+
+    it('should return true for valid rows that have multiple NONE seats at the beginning of the row', () => {
+      //todo: implement me
+      //assert.isOk();
     });
 
     it('should return true if there are two no columns to the left and right of the selected column', () => {
@@ -316,7 +339,13 @@ describe('column Validation', () => {
     });
 
     it('should return true if user selects both PAIR_LEFT and PAIR_RIGHT loveseats', () => {
-      assert.isOk(false);
+      //todo: implement me
+      // assert.isOk();
+    });
+
+    it('should return false if user selects only PAIR_LEFT for love seat', () => {
+      //todo: implemnt me
+      // assert.isNotOk();
     });
   });
 });

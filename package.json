@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "start": "node ./bin/www",
-    "test": "mocha"
+    "test": "mocha --exit"
   },
   "dependencies": {
     "axios": "^0.18.0",
@@ -14,15 +14,15 @@
     "express": "^4.16.3",
     "http-errors": "~1.6.2",
     "lodash": "^4.17.10",
-    "mocha": "^5.2.0",
     "morgan": "~1.9.0",
     "pug": "2.0.0-beta11"
   },
   "description": "Validates seats",
   "main": "app.js",
   "devDependencies": {
-    "chai": "*",
-    "mocha": "*"
+    "chai": "^4.1.2",
+    "chai-http": "^4.2.0",
+    "mocha": "^5.2.0"
   },
   "repository": {
     "type": "git",

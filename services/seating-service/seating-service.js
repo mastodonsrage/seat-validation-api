@@ -32,7 +32,8 @@ class SeatingService {
    */
   mapForSelectedSeats(selected) {
     return _.chain(selected)
-      .flatMap(selectedArea => {
+      .groupBy(selectedArea => selectedArea.areaIndex)
+      .mapValues(selectedArea => {
         return _.chain(selectedArea)
           .groupBy(selectedRow => selectedRow.rowIndex)
           .mapValues(selectedColumn => {
@@ -52,7 +53,7 @@ class SeatingService {
   }
 
   mapSeats(unsortedRowDetails, selectedSeats) {
-    let sortedRowDetails = _.sortBy(unsortedRowDetails.seats, seat => seat.columnIndex);
+    let sortedRowDetails = _.sortBy(unsortedRowDetails, seat => seat.columnIndex);
     if (!this.hasValidSeatSelection(selectedSeats, sortedRowDetails)) {
       //todo: handle this better. Ok workaround until I have time to implement
       throw 'Selected seat doesn\'t exist in row.';
@@ -132,16 +133,14 @@ class SeatingService {
   filterForRelevantRows(areas, selectedSeats) {
     return _.chain(areas)
       .filter(area => area.areaIndex in selectedSeats)
-      .keyBy(area => area.areaIndex)
-      .mapValues(area => this.extractRows(area, selectedSeats))
+      .flatMap(area => this.extractRows(area, selectedSeats))
       .value();
   }
 
   extractRows(area, selectedSeats) {
     return _.chain(area.rows)
       .filter(row => row.rowIndex in selectedSeats[row.areaIndex])
-      .keyBy(row => row.rowIndex)
-      .mapValues(row => this.mapSeats(row, selectedSeats[row.areaIndex][row.rowIndex]))
+      .map(row => this.mapSeats(row, selectedSeats[row.areaIndex][row.rowIndex]))
       .value();
   }
 

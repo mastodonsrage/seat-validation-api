@@ -1,33 +1,14 @@
 let express = require('express');
 let bodyParser = require('body-parser');
-let app = express();
 let router = express.Router();
-let SeatValidation = require('../services/seat-validation/validate');
+let _ = require('lodash');
 
-app.use(bodyParser.json()); // support json encoded bodies
-app.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
+router.use(bodyParser.json()); // support json encoded bodies
+router.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
 
-app.post('/validate/:cinemaId/:sessionId', function(req, res) {
-  console.log('got request');
-  let seatValidation = new SeatValidation();
-  seatValidation.validate(req.params.cinemaId, req.params.sessionId, req.body)
-    .then(r => {
-      let responseBody = {'isValid': r};
-      res.send(responseBody);
-    });
-});
-
-app.post('/', function(req, res) {
+router.get('/', function(req, res) {
   res.send('Yo, dawg.');
 });
 
-module.exports = app;
+module.exports = router;
 
-app.use(function (err, req, res, next) {
-  console.error(err.stack)
-  res.status(500).send('Something broke!')
-});
-app.use('/', router);
-app.listen(8999, function() {
-  console.log('Let\'s get ready to rumble!!!!');
-});
